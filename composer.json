@@ -1,0 +1,38 @@
+{
+    "name": "smartgeomatics/laravel-deferred-batch",
+    "description": "Deferred batch construction for Laravel job chains",
+    "keywords": ["laravel", "queue", "batch", "deferred", "chain"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/bus": "^12.0",
+        "illuminate/container": "^12.0",
+        "illuminate/contracts": "^12.0",
+        "illuminate/queue": "^12.0",
+        "illuminate/support": "^12.0",
+        "laravel/serializable-closure": "^1.0|^2.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SmartGeomatics\\DeferredBatch\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SmartGeomatics\\DeferredBatch\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SmartGeomatics\\DeferredBatch\\DeferredBatchServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
