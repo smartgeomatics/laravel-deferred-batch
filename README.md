@@ -100,16 +100,6 @@ Bus::chain([
 ])->dispatch();
 ```
 
-### Using the Macro
-
-The package registers a `deferredBatch` macro on the Bus dispatcher:
-
-```php
-Bus::deferredBatch(function () {
-    return Bus::batch([new SomeJob]);
-});
-```
-
 ## How It Works
 
 1. When the chain reaches the `DeferredBatch` job, it invokes your builder callback.

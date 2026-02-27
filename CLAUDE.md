@@ -18,7 +18,7 @@ The package has two source files:
 
 - **`src/DeferredBatch.php`** — A queueable job (`ShouldQueue`) that wraps a serializable builder callable. When handled, it invokes the builder which must return a `PendingBatch` or `null` (to skip). It attaches the remainder of the job chain to the batch's `finally` callback and propagates `chainCatchCallbacks` to the batch's `catch` handler. Closures are wrapped in `SerializableClosure` for queue serialization.
 
-- **`src/DeferredBatchServiceProvider.php`** — Registers a `deferredBatch` macro on `Illuminate\Bus\Dispatcher`, allowing `Bus::deferredBatch(fn() => ...)` syntax.
+- **`src/DeferredBatchServiceProvider.php`** — Auto-discovered service provider (currently a placeholder for future registrations).
 
 ### Key Design Decisions
 

@@ -2,7 +2,6 @@
 
 namespace SmartGeomatics\DeferredBatch;
 
-use Illuminate\Bus\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 
 class DeferredBatchServiceProvider extends ServiceProvider
@@ -14,8 +13,6 @@ class DeferredBatchServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        Dispatcher::macro('deferredBatch', function (callable $builder) {
-            return new DeferredBatch($builder);
-        });
+        //
     }
 }
