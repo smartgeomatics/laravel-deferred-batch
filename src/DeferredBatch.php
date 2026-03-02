@@ -19,7 +19,9 @@ use Throwable;
 
 class DeferredBatch implements ShouldQueue
 {
-    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels {
+        SerializesModels::__serialize as traitSerialize;
+    }
 
     /**
      * The batch builder callback.
@@ -41,6 +43,28 @@ class DeferredBatch implements ShouldQueue
         $this->builder = $builder instanceof Closure
             ? new SerializableClosure($builder)
             : $builder;
+    }
+
+    /**
+     * Prepare the instance for serialization.
+     *
+     * Ensures all closure properties are wrapped in SerializableClosure
+     * so the job can be serialized for any queue driver.
+     *
+     * @return array
+     */
+    public function __serialize(): array
+    {
+        if ($this->builder instanceof Closure) {
+            $this->builder = new SerializableClosure($this->builder);
+        }
+
+        $this->chainCatchCallbacks = array_map(
+            fn ($cb) => $cb instanceof Closure ? new SerializableClosure($cb) : $cb,
+            $this->chainCatchCallbacks ?? []
+        );
+
+        return $this->traitSerialize();
     }
 
     /**
@@ -91,10 +115,7 @@ class DeferredBatch implements ShouldQueue
 
             $next->chainConnection = $this->chainConnection;
             $next->chainQueue = $this->chainQueue;
-            $next->chainCatchCallbacks = array_map(
-                fn ($cb) => $cb instanceof Closure ? new SerializableClosure($cb) : $cb,
-                $this->chainCatchCallbacks ?? []
-            );
+            $next->chainCatchCallbacks = $this->chainCatchCallbacks;
 
             $batch->finally(function (Batch $batch) use ($next) {
                 if (! $batch->cancelled()) {

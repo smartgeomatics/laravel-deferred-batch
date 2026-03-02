@@ -299,6 +299,98 @@ class DeferredBatchTest extends TestCase
         $this->assertEquals('high', $deferred->queue);
         $this->assertEquals('redis', $deferred->connection);
     }
+
+    public function test_next_deferred_batch_in_chain_survives_serialization_roundtrip()
+    {
+        // $next is serialized into the chain WITHOUT chainCatchCallbacks
+        $next = new DeferredBatch(function () {
+            return null;
+        });
+
+        // Step 1: serialize into chain (PendingChain::chain())
+        $chainEntry = serialize($next);
+
+        // Step 2: unserialize from chain (attachRemainderOfChainToEndOfBatch)
+        $restored = unserialize($chainEntry);
+
+        // chainCatchCallbacks are set AFTER unserializing from chain,
+        // simulating what attachRemainderOfChainToEndOfBatch does
+        $catchCallback = new \Laravel\SerializableClosure\SerializableClosure(function ($e) {
+            // catch callback
+        });
+        $restored->chainCatchCallbacks = [$catchCallback];
+
+        // Step 3: serialize as part of finally callback storage (batch dispatch)
+        $payload = serialize($restored);
+
+        // Step 4: unserialize when finally callback fires
+        $restoredAgain = unserialize($payload);
+
+        // Step 5: serialize for Redis dispatch - this is where the original bug failed
+        $finalPayload = serialize($restoredAgain);
+        $this->assertNotEmpty($finalPayload);
+    }
+
+    public function test_full_serialization_flow_with_chain_catch_callbacks()
+    {
+        // Simulate the FULL flow: DeferredBatch dispatched on Redis with chain
+
+        // 1. User creates chain: Bus::chain([DeferredBatch1, DeferredBatch2])->catch(...)->dispatch()
+        $first = new DeferredBatch(function () {
+            return null;
+        });
+        $second = new DeferredBatch(function () {
+            return null;
+        });
+
+        // PendingChain wraps catch callbacks in SerializableClosure
+        $catchCb = new \Laravel\SerializableClosure\SerializableClosure(function ($e) {
+            // user's catch handler
+        });
+        $first->chainCatchCallbacks = [$catchCb];
+        $first->chained = [serialize($second)];
+
+        // 2. First DeferredBatch is serialized for Redis queue
+        $redisPayload = serialize($first);
+
+        // 3. Worker picks up job, unserializes
+        $worker = unserialize($redisPayload);
+
+        // 4. In handle(), attachRemainderOfChainToEndOfBatch extracts $next
+        $next = unserialize(array_shift($worker->chained));
+        $next->chainCatchCallbacks = $worker->chainCatchCallbacks;
+
+        // 5. $next is captured in finally callback and stored in batch (serialized)
+        $batchPayload = serialize($next);
+
+        // 6. Batch finishes, finally callback fires, $next is unserialized
+        $dispatched = unserialize($batchPayload);
+
+        // 7. $next is dispatched to Redis (serialized AGAIN) - this is where the bug manifests
+        $finalPayload = serialize($dispatched);
+        $this->assertNotEmpty($finalPayload);
+    }
+
+    public function test_raw_closure_catch_callbacks_are_wrapped_on_serialize()
+    {
+        // Even if chainCatchCallbacks somehow contains raw Closures,
+        // __serialize wraps them before serialization
+        $deferred = new DeferredBatch(function () {
+            return null;
+        });
+
+        $deferred->chainCatchCallbacks = [function ($e) {
+            // raw closure - not wrapped in SerializableClosure
+        }];
+
+        // This should NOT throw - __serialize wraps the closures
+        $payload = serialize($deferred);
+        $restored = unserialize($payload);
+
+        // And it should survive another roundtrip
+        $payload2 = serialize($restored);
+        $this->assertNotEmpty($payload2);
+    }
 }
 
 class DeferredBatchTestJob implements ShouldQueue
