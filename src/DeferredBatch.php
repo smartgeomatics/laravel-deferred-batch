@@ -91,7 +91,10 @@ class DeferredBatch implements ShouldQueue
 
             $next->chainConnection = $this->chainConnection;
             $next->chainQueue = $this->chainQueue;
-            $next->chainCatchCallbacks = $this->chainCatchCallbacks;
+            $next->chainCatchCallbacks = array_map(
+                fn ($cb) => $cb instanceof Closure ? new SerializableClosure($cb) : $cb,
+                $this->chainCatchCallbacks ?? []
+            );
 
             $batch->finally(function (Batch $batch) use ($next) {
                 if (! $batch->cancelled()) {
