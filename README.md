@@ -5,7 +5,7 @@ A Laravel package that lets you lazily construct and dispatch a job batch from w
 ## Requirements
 
 - PHP 8.2+
-- Laravel 12
+- Laravel 12 or 13
 
 ## Installation
 

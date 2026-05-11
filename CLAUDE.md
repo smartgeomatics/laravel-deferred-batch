@@ -28,6 +28,6 @@ The package has two source files:
 
 ## Dependencies
 
-- Laravel 12 (`illuminate/*` ^12.0)
+- Laravel 12 or 13 (`illuminate/*` ^12.0|^13.0)
 - PHP 8.2+
-- Tests use Orchestra Testbench 10 with in-memory SQLite
+- Tests use Orchestra Testbench 10 or 11 with in-memory SQLite
